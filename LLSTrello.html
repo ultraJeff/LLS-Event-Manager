@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title>Trello Events Manager</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width">
+        <link href='http://fonts.googleapis.com/css?family=Noto+Sans:400,700,400italic,700italic|Pacifico|Merriweather:400italic,400,900,700' rel='stylesheet' type='text/css'>
+        <link href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css" type="text/css" rel="stylesheet">
+        <style>
+            body {background:#09C;}
+            a {color:black;}
+            main > .container {background:white;padding:15px;}
+            .stp {padding-top:5px;}
+            .sbp {padding-bottom:5px;}
+            .slp {padding-left:5px;}
+            .srp {padding-right:5px;}
+            .stm {margin-top:5px;}
+            .sbm {margin-bottom:5px;}
+            .slm {margin-left:5px;}
+            .srm {margin-right:5px;}
+            .ltm {margin-top:30px;}
+            .sans-serif {font-family:"Noto Sans", sans-serif;}
+            .serif {font-family:"Merriweather", serif;}
+            .red {color:red;}
+            .green {color:green;}
+            #event-table{width:100%;}
+            #event-table th, #event-table td {border:1px solid #DEDEDE;width:12.5%;padding:10px 5px;position:relative;}
+            @media (min-width:1600px) {
+                .container {width:1570px;}
+            }
+            @media (min-width:1920px) {
+                .container {width:1890px;}
+            }
+        </style>
+    </head>
+    <body>
+        <!--[if lt IE 8]>
+            <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+        <![endif]-->
+        <div id="container" class="container-fluid">
+          <header class="row">
+          </header>
+          <main class="row">
+            <div class="container">
+              <div class="row">
+                <h1 class='col-xs-6' style="font-family:Pacifico, cursive">Trello Events Manager</h1>
+                <div class="col-xs-6">
+                    <div class="pull-right" id="listView">
+                    </div>
+                </div>
+              </div>
+              <div class="row">
+                <div id="contextualizer" class="col-xs-12">
+                    <div id="loggedout">
+                        <a id="connectLink" href="#">Connect To Trello</a>
+                    </div>
+
+                    <div id="loggedin">
+                        <div id="header">
+                            Logged in to as <span id="fullName"></span> 
+                            <a id="disconnect" href="#">Log Out</a>
+                        </div>
+                        <div id="output"></div>
+                        <div id="calendar" class="ltm"></div>
+                        <div>
+                            <table id="event-table">
+                            </table>
+                        </div>
+                    </div> 
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+        <script>window.jQuery || document.write('<script src="js/vendor/jquery-1.11.1.min.js"><\/script>')</script>
+
+        <script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.7.0/underscore-min.js"></script>
+
+        <script src="http://cdnjs.cloudflare.com/ajax/libs/backbone.js/1.1.2/backbone-min.js"></script>
+
+        <script src="http://cdnjs.cloudflare.com/ajax/libs/handlebars.js/2.0.0/handlebars.min.js"></script>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.9.0/moment.min.js"></script>
+
+        <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
+
+        <script src="node_modules\backbone.marionette\lib\backbone.marionette.min.js"></script>
+
+        <script src="https://api.trello.com/1/client.js?key=bc6eb4161c78d453f6373c7431dd6039"></script>
+
+        <script id="event-manager-template" type="text/x-handlebars-template">
+                {{#each this}}
+                <tr>
+                    <th>{{eventType}} {{position}}</th>
+                    <td data-date="{{getDate 0}}" data-group="{{eventType}}" data-pos="{{getDigit position}}"></td>
+                    <td data-date="{{getDate 1}}" data-group="{{eventType}}" data-pos="{{getDigit position}}"></td>
+                    <td data-date="{{getDate 2}}" data-group="{{eventType}}" data-pos="{{getDigit position}}"></td>
+                    <td data-date="{{getDate 3}}" data-group="{{eventType}}" data-pos="{{getDigit position}}"></td>
+                    <td data-date="{{getDate 4}}" data-group="{{eventType}}" data-pos="{{getDigit position}}"></td>
+                    <td data-date="{{getDate 5}}" data-group="{{eventType}}" data-pos="{{getDigit position}}"></td>
+                    <td data-date="{{getDate 6}}" data-group="{{eventType}}" data-pos="{{getDigit position}}"></td>
+                </tr>
+                {{/each}}
+        </script>
+        <script id="custom-card-template" type="text/x-handlebars-template">
+            <a href="{{url}}" style="box-shadow:inset 0 -25px 140px {{color}};position:absolute;top:0;bottom:0;left:0;right:0;padding:0 3px" data-id={{id}}>
+                {{name}}
+            </a>
+            {{!Triple handlebars so as not to escape HTML}}
+            {{{getProgress progress}}}
+        </script>
+    <script>
+    (function($) {
+        Handlebars.registerHelper('getProgress', function(progress) {
+            var content = "";
+            for(var i = 0; i < 4; i++) {
+                if (progress > i)
+                    content += '<span class="glyphicon glyphicon-stop green"></span>';
+                else
+                    content += '<span class="glyphicon glyphicon-stop red"></span>';   
+            }
+            return content;
+        });
+
+        Handlebars.registerHelper('getDate', function(offset) {
+            return moment().add(offset, 'd').format('M[/]D');
+        });
+
+        Handlebars.registerHelper('getDigit', function(position) {
+            if (position.length > 1)
+                return 99;
+            else
+                return position.charCodeAt(0) - 64; //ASCII to 1-26 Alphabet - letter must be a capital!
+        });
+
+        Handlebars.registerHelper('getColor', function(id) {
+            return '#' + id.substring(0,6);
+        });
+
+        var tmp = "<tr><td></td>";
+
+        for (var i = 0;i < 7;i++) {
+            tmp += "<td>" + moment().add(i, 'd').format('M[/]D <br/> dddd') + "</td>"
+        };
+
+        tmp += "</tr>";
+
+        $('#event-table').append(tmp);
+
+        var source = $('#event-manager-template').html();
+
+        var tpl = Handlebars.compile(source);
+
+        var context = [
+            {
+                eventType:"LLS",
+                position: "A"
+            },
+            {
+                eventType:"LLS",
+                position: "B"
+            },
+            {
+                eventType:"LLS",
+                position: "C"
+            },
+            {
+                eventType:"LLS",
+                position: "D"
+            },
+            {
+                eventType:"LLS",
+                position: "E"
+            },
+            {
+                eventType:"LLS",
+                position: "F"
+            },
+            {
+                eventType:"LLS",
+                position: "Extra"
+            },
+            {
+                eventType:"SHD",
+                position: "A"
+            },
+            {
+                eventType:"SHD",
+                position: "B"
+            },
+            {
+                eventType:"SHD",
+                position: "C"
+            },
+            {
+                eventType:"SHD",
+                position: "D"
+            },
+            {
+                eventType:"GBZ",
+                position: "A"
+            },
+            {
+                eventType:"GBZ",
+                position: "B"
+            },
+            {
+                eventType:"GBZ",
+                position: "C"
+            },
+            {
+                eventType:"GBZ",
+                position: "D"
+            },
+            {
+                eventType:"GBZ",
+                position: "E"
+            },
+            {
+                eventType:"TLZ",
+                position: "A"
+            },
+            {
+                eventType:"TLZ",
+                position: "B"
+            },
+            {
+                eventType:"PGC",
+                position: "A"
+            },
+            {
+                eventType:"PGC",
+                position: "B"
+            },
+            {
+                eventType:"PGC",
+                position: "C"
+            },
+            {
+                eventType:"AGU",
+                position: "A"
+            },
+            {
+                eventType:"AGU",
+                position: "B"
+            },
+            {
+                eventType:"AGU",
+                position: "C"
+            },
+            {
+                eventType:"AGU",
+                position: "D"
+            },
+            {
+                eventType:"AGU",
+                position: "E"
+            },
+            {
+                eventType:"AGU",
+                position: "Extra"
+            }
+        ];
+
+        var html = tpl(context);
+
+        $('#event-table').append(html);
+
+        var onAuthorize = function() {
+            updateLoggedIn();
+            $("#output").empty();
+            //Can't directly get lists. Use my for logged in user or member ID of specific members and then grab their boards and from that info, grab the lists. http://stackoverflow.com/questions/26552278/trello-api-getting-boards-lists-cards-information
+            //536ac7b826dc88eb1b6798bf is Events Board
+            /*var EventsBoard = Backbone.Model.extend({
+                url: "https://api.trello.com/1/boards/536ac7b826dc88eb1b6798bf?key=" + Trello.key() + "&token=" + Trello.token()
+            });*/
+
+            var CustomCard = Backbone.Model.extend();
+
+            var CustomCards = Backbone.Collection.extend({
+                model: CustomCard
+            });
+
+            //this.get("name") for the English list name and this.get("id") for the list id.
+            /*var EventsLists = Backbone.Collection.extend({
+                url: "https://api.trello.com/1/boards/536ac7b826dc88eb1b6798bf/lists?key=" + Trello.key() + "&token=" + Trello.token()
+            });*/
+
+            var EventsCards = Backbone.Collection.extend({
+                url: "https://api.trello.com/1/boards/536ac7b826dc88eb1b6798bf/cards?key=" + Trello.key() + "&token=" + Trello.token()
+            });
+
+            var CustomCardView = Backbone.View.extend({
+                render: function() {
+                    var source = $('#custom-card-template').html();
+                    var tpl = Handlebars.compile(source);
+                    var context = this.model.toJSON();
+                    var html = tpl(context);
+                    this.$el.html(html);
+                    return this;
+                }
+            });
+
+            window.eventsCards = new EventsCards();
+            window.customCards = new CustomCards();
+            //window.eventsLists = new EventsLists();
+
+            //Lists vs. Progress is custom so any additions will have to be manual based on how LLS wants to treat new lists
+            //Step 1: Ethan, Fig, Dustin IDs(resp.) -
+                //53ea51951645f62227fe11c7
+                //53a860cd69c08e8e9627fc57
+                //543483493f61a7ea6d983982
+            //Step 2: SPECIAL EVENTS, TO DO IDs -
+                //536ac90d3e211b2d1b7ac152
+                //53bdafcfc71187356bca14b0
+            //Step 3: IN PROCESS -
+                //536ac7b826dc88eb1b6798c1
+            //Step 4: DONE -
+                //536ac7b826dc88eb1b6798c2
+            //NOT IN USE: Ready to Archive -
+                //54adbe0dc11081c20eae2840
+
+            var getProgress = function(id) {
+                switch(id) {
+                    case "53ea51951645f62227fe11c7":
+                    case "53a860cd69c08e8e9627fc57":
+                    case "543483493f61a7ea6d983982":
+                        return 1;
+                    case "536ac90d3e211b2d1b7ac152":
+                    case "53bdafcfc71187356bca14b0":
+                        return 2;
+                    case "536ac7b826dc88eb1b6798c1":
+                        return 3;
+                    case "536ac7b826dc88eb1b6798c2":
+                        return 4;
+                    default:
+                        return 0;
+                }
+            }
+
+            eventsCards.fetch({
+                success: function(e) {
+                    e.each(function(model) {
+                        var tmp = model.get("name").split(", ");
+
+                        if (tmp.length != 4)
+                            return;
+
+                        var tmpTime = new Date(tmp[3]);
+                        var color = "white";
+
+                        if (tmpTime == "Invalid Date")
+                            tmpTime = "";
+                        else {
+                            tmpTime = tmpTime.toISOString();
+                            tmpTime = moment(tmpTime).format('M[/]D');
+                        }
+
+                        if (model.get("labels").length > 0)
+                            color = model.get("labels")[0].color;
+
+                        var customCard = new CustomCard({
+                            label: tmp[0],
+                            name: tmp[1],
+                            number: tmp[2],
+                            date: tmpTime,
+                            url: model.get("url"),
+                            progress: getProgress(model.get("idList")),
+                            color: color
+                        });
+
+                        customCards.add(customCard);
+                    });
+                    
+                    customCards.each(function(card) {
+                        var customCardView = new CustomCardView({
+                            el: $('[data-date="' + card.get("date") + '"][data-group="' + card.get("label") + '"][data-pos="' + card.get("number") + '"]'),
+                            model: card
+                        });
+                        customCardView.render();
+                    });
+                }
+            });
+
+            //UPDATE CARDS WITH Trello.put not Trello.post!
+            //Trello.put("cards/54adb13421fb0d1d7a750def/name", {value:"Add some Hars"})
+
+            Trello.members.get("me", function(member){
+                $("#fullName").text(member.fullName);
+                /*var $cards= $("<div>")
+                    .text("Loading Cards...")
+                    .appendTo("#output");*/
+
+                // Output a list of all of the cards that the member 
+                // is assigned to
+                /*Trello.get("members/me/cards", function(cards) {
+                    $cards.empty();
+                    $("<div>").text("Click a card to add a comment to it").appendTo($cards);
+                    
+                    $.each(cards, function(ix, card) {
+                        $("<a>")
+                        .addClass("card")
+                        .text(card.name)
+                        .appendTo($cards)
+                        .click(function(){
+                            Trello.post("cards/" + card.id + "/actions/comments", { text: "Hello from jsfiddle.net!" })
+                        })
+                    });  
+                });*/
+            });
+
+        };
+
+        var updateLoggedIn = function() {
+            var isLoggedIn = Trello.authorized();
+            $("#loggedout").toggle(!isLoggedIn);
+            $("#loggedin").toggle(isLoggedIn);        
+        };
+            
+        var logout = function() {
+            Trello.deauthorize();
+            updateLoggedIn();
+        };
+                                  
+        Trello.authorize({
+            interactive:false,
+            name: "Trello Playground",
+            success: onAuthorize
+        });
+
+        $("#connectLink")
+        .click(function(){
+            Trello.authorize({
+                type: "popup",
+                name: "Trello Event Manager",
+                success: onAuthorize,
+                scope: { write: true, read: true }
+            })
+        });
+            
+        $("#disconnect").click(logout);
+
+    })(jQuery);
+    </script>
+    </body>
+</html>
