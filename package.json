@@ -1,25 +1,44 @@
 {
-  "name": "LLS-Event-Manager",
-  "version": "0.0.0",
-  "private": true,
-  "scripts": {
-    "start": "node ./bin/www"
+  "name": "Samscom-Code-Exercise",
+  "version": "0.1.0",
+  "author": "Jeff Franklin <jrobertfranklin@gmail.com>",
+  "description": "A sample app page for Samscom Corp. advertising their latest products",
+  "contributors": [
+    {
+      "name": "Jeff Franklin ",
+      "email": "jrobertfranklin@gmail.com",
+      "web": "http://jefrfranklin.com/"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ultraJeff/samscom-code-exercise.git"
   },
+  "keywords": [
+    "samscom",
+    "code",
+    "exercise"
+  ],
   "dependencies": {
-    "body-parser": "~1.10.2",
-    "cookie-parser": "~1.3.3",
-    "debug": "~2.1.1",
-    "express": "~4.11.1",
-    "jade": "~1.9.1",
-    "morgan": "~1.5.1",
-    "serve-favicon": "~2.2.0"
+    "animate.css": "^3.1.1",
+    "backbone.marionette": "~2.3.1",
+    "express": "~3.1.0"
   },
   "devDependencies": {
-    "grunt": "~0.4.5",
-    "grunt-contrib-jshint": "^0.11.0",
-    "grunt-contrib-nodeunit": "~0.4.1",
-    "grunt-contrib-uglify": "~0.5.0",
-    "grunt-contrib-watch": "~0.5.3",
-    "grunt-contrib-compass": "~0.6.0"
+    "grunt": "~0.4.1",
+    "grunt-contrib-jshint": "~0.3.0",
+    "grunt-contrib-concat": "~0.1.3",
+    "grunt-contrib-uglify": "~0.2.0",
+    "grunt-contrib-less": "~0.5.0",
+    "grunt-contrib-cssmin": "~0.5.0",
+    "mocha": "~1.11.0",
+    "chai": "~1.6.1",
+    "grunt-contrib-jst": "~0.5.0",
+    "grunt-contrib-copy": "~0.4.1",
+    "grunt-contrib-clean": "~0.4.1"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=0.6"
   }
 }
